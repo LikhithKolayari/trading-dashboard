@@ -12,5 +12,6 @@ export const API_URLS = {
       "/api/v3/exchangeInfo?symbolStatus=TRADING&permissions=SPOT&showPermissionSets=false",
     UI_KLINES: "/api/v3/uiKlines",
     TICKER_24HR: "/api/v3/ticker/24hr",
+    WS_URL: "wss://stream.binance.com:9443/stream",
   },
 } as const;

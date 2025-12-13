@@ -7,6 +7,7 @@ import PrimaryPriceCard from "../components/TradingCards/PrimaryPriceCard";
 import ExecutionDepthCard from "../components/TradingCards/ExecutionDepthCard";
 import VolatilityRangeCard from "../components/TradingCards/VolatilityRangeCard";
 import TradeActivityCard from "../components/TradingCards/TradeActivityCard";
+import { useTickerStream } from "../hooks/useTickerStream";
 import { get24hrTicker } from "../services/binance";
 import type { Binance24hrTicker } from "../types/binance";
 
@@ -18,31 +19,53 @@ export default function Dashboard() {
   };
 
   const [symbol, setSymbol] = useState<string>("");
-  const [ticker, setTicker] = useState<Binance24hrTicker | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    ticker: wsTicker,
+    loading: wsLoading,
+    error: wsError,
+    isStale,
+    status,
+    reconnect,
+  } = useTickerStream(symbol);
 
-  // Load ticker when symbol changes
+  // Initial static data fetch on symbol change
+  const [initialTicker, setInitialTicker] = useState<Binance24hrTicker | null>(null);
+  const [restLoading, setRestLoading] = useState<boolean>(false);
+  const [restError, setRestError] = useState<string | null>(null);
+  const SYMBOL_REGEX = /^[A-Z0-9]{4,20}$/; // match WS hook allowlist
+
   useEffect(() => {
-    let ignore = false;
-    const load = async () => {
-      if (!symbol) return;
-      setLoading(true);
-      setError(null);
+    let cancelled = false;
+    setInitialTicker(null);
+    setRestError(null);
+
+    const s = (symbol || "").trim().toUpperCase();
+    if (!s || !SYMBOL_REGEX.test(s)) {
+      setRestLoading(false);
+      return;
+    }
+
+    setRestLoading(true);
+    (async () => {
       try {
-        const t = await get24hrTicker(symbol);
-        if (!ignore) setTicker(t);
-      } catch (e) {
-        if (!ignore) setError((e as Error)?.message || "Failed to load ticker");
+        const data = await get24hrTicker(s);
+        if (!cancelled) setInitialTicker(data);
+      } catch {
+        if (!cancelled) setRestError("Failed to load initial ticker");
       } finally {
-        if (!ignore) setLoading(false);
+        if (!cancelled) setRestLoading(false);
       }
-    };
-    void load();
+    })();
+
     return () => {
-      ignore = true;
+      cancelled = true;
     };
   }, [symbol]);
+
+  // Prefer WS live updates; fall back to initial REST data
+  const ticker = wsTicker ?? initialTicker;
+  const loading = !ticker && (restLoading || wsLoading);
+  const error = wsError ?? restError;
 
   if (!user) return null;
 
@@ -203,6 +226,20 @@ export default function Dashboard() {
         <div className="mt-4 text-sm">
           {loading && <p className="text-gray-400">Loading ticker...</p>}
           {error && <p className="text-red-400">{error}</p>}
+          {isStale && (
+            <div className="text-yellow-400">
+              Connection lost. Showing last known data. Attempting to reconnect...
+              <button
+                type="button"
+                onClick={reconnect}
+                className="ml-2 text-xs px-2 py-0.5 rounded border"
+                style={{ borderColor: "var(--color-border)", color: "var(--color-accent)" }}
+              >
+                Reconnect
+              </button>
+              <span className="ml-2 text-gray-500">Status: {status}</span>
+            </div>
+          )}
         </div>
       </main>
     </div>
