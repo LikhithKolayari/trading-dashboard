@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# App data (do not commit local DB or legacy JSON users)
+server/data/
+
