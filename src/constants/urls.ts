@@ -9,6 +9,8 @@ export const API_URLS = {
   BINANCE: {
     BASE: "https://api.binance.com",
     EXCHANGE_INFO:
-      "https://api.binance.com/api/v3/exchangeInfo?symbolStatus=TRADING&permissions=SPOT&showPermissionSets=false",
+      "/api/v3/exchangeInfo?symbolStatus=TRADING&permissions=SPOT&showPermissionSets=false",
+    UI_KLINES: "/api/v3/uiKlines",
+    TICKER_24HR: "/api/v3/ticker/24hr",
   },
 } as const;

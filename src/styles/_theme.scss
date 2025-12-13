@@ -1,0 +1,34 @@
+/* Global theme variables extracted from the dashboard mock */
+:root {
+  /* Surfaces */
+  --color-page-bg: #0b1220; /* Very dark navy */
+  --color-surface: #141b2d; /* Card background */
+  --color-surface-alt: #10182b; /* Header background */
+
+  /* Borders */
+  --color-border: #24304d;
+
+  /* Accents */
+  --color-accent: #4da3ff; /* Primary blue */
+  --color-positive: #22c55e; /* Green */
+  --color-negative: #ef4444; /* Red */
+
+  /* Neutrals */
+  --color-neutral-200: #e5e7eb; /* Gray 200 used for default value text */
+  --color-neutral-400: #9ca3af; /* Gray 400 for muted labels */
+
+  /* Inputs / Selects (React Select) */
+  --select-bg: #1f2937; /* gray-800 */
+  --select-text: #f3f4f6; /* gray-100 */
+  --select-placeholder: #9ca3af; /* gray-400 */
+  --select-border: #374151; /* gray-700 */
+  --select-border-hover: #4b5563; /* gray-600 */
+  --select-menu-bg: #1f2937; /* gray-800 */
+  --select-menu-border: #374151; /* gray-700 */
+  --select-option-bg-focus: #374151; /* gray-700 */
+  --select-option-bg-selected: #0e7490; /* cyan-700 */
+  --select-option-text-selected: #ecfeff; /* cyan-50 */
+  --select-option-bg-active: #155e75; /* cyan-800 */
+  --select-focus: #06b6d4; /* cyan-500 */
+  --select-focus-ring: 0 0 0 2px rgba(6, 182, 212, 0.35);
+}

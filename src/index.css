@@ -1,9 +1,11 @@
 @import "tailwindcss";
 
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Avenir, Helvetica, Arial,
+    sans-serif;
   line-height: 1.5;
   font-weight: 400;
+  font-variant-numeric: tabular-nums; /* Align numbers for prices/percents */
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
@@ -13,4 +15,18 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Headings use Sora for a cleaner title style */
+h1,
+h2,
+h3 {
+  font-family: Sora, Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+/* Optional: ensure inputs/selects inherit the numeric alignment */
+select,
+input,
+button {
+  font-variant-numeric: tabular-nums;
 }
