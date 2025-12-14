@@ -41,8 +41,8 @@ COPY --from=backend-deps /app/server/node_modules ./node_modules
 COPY server ./
 
 # Copy the built frontend from the builder and place it where Express serves it
-# We will serve from /app/server/client per server/index.js
-COPY --from=frontend-builder /app/dist /app/server/client
+# Express serves from /app/client per server/index.js
+COPY --from=frontend-builder /app/dist /app/client
 
 # Prepare data directory for JsonDB and set permissions
 RUN mkdir -p /app/server/data && chown -R node:node /app/server
