@@ -182,3 +182,29 @@ export async function getUIKlines(
   }
   return data;
 }
+
+// Transform Binance UI klines (ms timestamps, string prices) into ChartCandle[] (sec timestamps, number prices)
+import type { ChartCandle } from "../types/chart";
+export function transformKlinesToChartData(uiklines: BinanceUIKline[]): ChartCandle[] {
+  if (!Array.isArray(uiklines)) return [];
+  return uiklines
+    .map((k) => {
+      const [openTime, open, high, low, close] = k;
+      const timeSec = Math.floor(Number(openTime) / 1000);
+      const o = Number.parseFloat(open as string);
+      const h = Number.parseFloat(high as string);
+      const l = Number.parseFloat(low as string);
+      const c = Number.parseFloat(close as string);
+      if (
+        !Number.isFinite(timeSec) ||
+        !Number.isFinite(o) ||
+        !Number.isFinite(h) ||
+        !Number.isFinite(l) ||
+        !Number.isFinite(c)
+      ) {
+        return null;
+      }
+      return { time: timeSec, open: o, high: h, low: l, close: c } as ChartCandle;
+    })
+    .filter((x): x is ChartCandle => x !== null);
+}

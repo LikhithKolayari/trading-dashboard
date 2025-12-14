@@ -9,7 +9,11 @@ import VolatilityRangeCard from "../components/TradingCards/VolatilityRangeCard"
 import TradeActivityCard from "../components/TradingCards/TradeActivityCard";
 import { useTickerStream } from "../hooks/useTickerStream";
 import { get24hrTicker } from "../services/binance";
-import type { Binance24hrTicker } from "../types/binance";
+import type { Binance24hrTicker, KlineInterval } from "../types/binance";
+import CandlestickChart from "../components/CandlestickChart";
+import IntervalSelect from "../components/IntervalSelect";
+import { getUIKlines, transformKlinesToChartData } from "../services/binance";
+import type { ChartCandle } from "../types/chart";
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -27,6 +31,14 @@ export default function Dashboard() {
     status,
     reconnect,
   } = useTickerStream(symbol);
+
+  // Kline chart state
+  const [interval, setInterval] = useState<KlineInterval>("1h");
+  const [klines, setKlines] = useState<ChartCandle[]>([]);
+  const [klinesLoading, setKlinesLoading] = useState<boolean>(false);
+  const [klinesError, setKlinesError] = useState<string | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+  const [noMoreData, setNoMoreData] = useState<boolean>(false);
 
   // Initial static data fetch on symbol change
   const [initialTicker, setInitialTicker] = useState<Binance24hrTicker | null>(null);
@@ -61,6 +73,41 @@ export default function Dashboard() {
       cancelled = true;
     };
   }, [symbol]);
+
+  // Fetch klines whenever symbol or interval changes
+  useEffect(() => {
+    let cancelled = false;
+    setKlines([]);
+    setKlinesError(null);
+    setNoMoreData(false);
+
+    const s = (symbol || "").trim().toUpperCase();
+    if (!s || !SYMBOL_REGEX.test(s)) {
+      setKlinesLoading(false);
+      return;
+    }
+
+    setKlinesLoading(true);
+    (async () => {
+      try {
+        const LIMIT = 500;
+        const raw = await getUIKlines({ symbol: s, interval, limit: LIMIT });
+        const transformed = transformKlinesToChartData(raw);
+        if (!cancelled) {
+          setKlines(transformed);
+          if (raw.length < LIMIT) setNoMoreData(true);
+        }
+      } catch {
+        if (!cancelled) setKlinesError("Failed to load klines");
+      } finally {
+        if (!cancelled) setKlinesLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [symbol, interval]);
 
   // Prefer WS live updates; fall back to initial REST data
   const ticker = wsTicker ?? initialTicker;
@@ -165,18 +212,69 @@ export default function Dashboard() {
                 borderColor: "var(--color-border)",
               }}
             >
-              <div className="p-4 text-gray-400 text-sm">Chart</div>
-              <div className="h-[380px] relative">
-                {/* Simple placeholder curve background */}
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    background:
-                      "linear-gradient(180deg, rgba(50,108,255,0.15) 0%, rgba(50,108,255,0.04) 50%, rgba(0,0,0,0) 100%)",
-                  }}
-                />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-gray-500">Chart Placeholder</span>
+              <div className="p-4 text-gray-400 text-sm flex items-center justify-between gap-4">
+                <span>Chart</span>
+                <div className="w-40">
+                  <IntervalSelect value={interval} onChange={setInterval} />
+                </div>
+              </div>
+              <div className="px-4 pb-4">
+                <div className="relative">
+                  {klinesLoading && (
+                    <div className="absolute left-2 top-2 text-xs text-gray-400">
+                      Loading klines...
+                    </div>
+                  )}
+                  {klinesError && (
+                    <div className="absolute left-2 top-2 text-xs text-red-400">{klinesError}</div>
+                  )}
+                  <CandlestickChart
+                    data={klines}
+                    height={380}
+                    className="w-full"
+                    onLoadMore={async () => {
+                      if (isLoadingMore || noMoreData) return;
+                      const s = (symbol || "").trim().toUpperCase();
+                      if (!s || !SYMBOL_REGEX.test(s)) return;
+                      if (!klines.length) return;
+
+                      try {
+                        setIsLoadingMore(true);
+                        const earliestSec = Math.min(...klines.map((k) => k.time));
+                        // Use endTime just before earliest to avoid duplicate boundary
+                        const endTime = earliestSec * 1000 - 1;
+                        const LIMIT = 500;
+                        const raw = await getUIKlines({
+                          symbol: s,
+                          interval,
+                          endTime,
+                          limit: LIMIT,
+                        });
+                        const older = transformKlinesToChartData(raw);
+                        if (!older.length) {
+                          setNoMoreData(true);
+                          return;
+                        }
+                        setKlines((prev) => {
+                          // Merge unique by time and keep ascending order
+                          const seen = new Set<number>();
+                          const merged = [...older, ...prev].filter((c) => {
+                            if (seen.has(c.time)) return false;
+                            seen.add(c.time);
+                            return true;
+                          });
+                          merged.sort((a, b) => a.time - b.time);
+                          return merged;
+                        });
+                        if (raw.length < LIMIT) setNoMoreData(true);
+                      } catch {
+                        // Soft-fail: keep UI responsive
+                      } finally {
+                        setIsLoadingMore(false);
+                      }
+                    }}
+                    isLoadingMore={isLoadingMore}
+                  />
                 </div>
               </div>
             </div>
