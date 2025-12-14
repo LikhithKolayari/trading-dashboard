@@ -18,24 +18,48 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // Security headers
+// Security headers with environment-aware CSP
+const isProd = process.env.NODE_ENV === "production";
+const connectSrc = ["'self'", "https://api.binance.com", "wss://stream.binance.com:9443/stream"];
+if (!isProd) {
+  connectSrc.push("http://localhost:3001", "ws://localhost:*");
+}
+
 app.use(
   helmet({
     crossOriginEmbedderPolicy: false,
     contentSecurityPolicy: {
       useDefaults: true,
       directives: {
-        // Allow Vite dev server and API
-        "connect-src": ["'self'", "http://localhost:3001", "ws://localhost:*"],
+        "connect-src": connectSrc,
       },
     },
   })
 );
 
+// Serve built frontend in production
+const clientDir = path.resolve(__dirname, "../client");
+if (isProd) {
+  app.use(
+    express.static(clientDir, {
+      index: false,
+      maxAge: "1h",
+      etag: true,
+    })
+  );
+}
+
+// Trust Render/Proxy in production for secure cookies
+if (isProd) {
+  app.set("trust proxy", 1);
+}
+
 app.use(cookieParser());
 app.use(express.json({ limit: "100kb" }));
 
 // CORS for frontend dev server
-const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "http://localhost:5173";
+const FRONTEND_ORIGIN =
+  process.env.FRONTEND_ORIGIN || process.env.RENDER_EXTERNAL_URL || "http://localhost:5173";
 app.use(
   cors({
     origin: FRONTEND_ORIGIN,
@@ -46,7 +70,7 @@ app.use(
 // Session configuration
 const oneDayMs = 24 * 60 * 60 * 1000;
 const sessionName = "sid";
-const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(48).toString("hex");
+const sessionSecret = crypto.randomBytes(48).toString("hex");
 
 app.use(
   session({
@@ -71,6 +95,13 @@ app.get("/api/health", (_req, res) => {
 // Routes
 app.use("/api", authRouter);
 app.use("/api", watchlistRouter);
+
+// In production, serve SPA index.html for non-API routes
+if (isProd) {
+  app.get(/^\/(?!api).*/, (_req, res) => {
+    res.sendFile(path.join(clientDir, "index.html"));
+  });
+}
 
 // 404 handler
 app.use((_req, res) => {
