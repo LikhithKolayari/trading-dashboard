@@ -18,8 +18,7 @@
     "test:watch": "vitest",
     "sass": "sass src/Sass:src/Css --watch --no-source-map",
     "server": "npm --prefix server run dev",
-    "dev:all": "concurrently -k -n SERVER,WEB -c magenta,cyan \"npm:server\" \"vite\"",
-    "serve": "vite build && mkdir client && cp -r dist/* client/"
+    "dev:all": "concurrently -k -n SERVER,WEB -c magenta,cyan \"npm:server\" \"vite\""
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.17",
