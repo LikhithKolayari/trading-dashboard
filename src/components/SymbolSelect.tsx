@@ -36,7 +36,6 @@ export default function SymbolSelect({
       const opts = await getTradingSymbolOptions();
       setOptions(opts);
     } catch {
-      // Show a generic error to avoid leaking internal error details
       setError("Failed to load symbols");
     } finally {
       setLoading(false);
@@ -47,7 +46,7 @@ export default function SymbolSelect({
     void load();
   }, []);
 
-  // Dark theme styles to match current UI (Tailwind gray + cyan accent)
+  // Dark theme styles to match current UI
   const customStyles: StylesConfig<SymbolOption, false> = {
     container: (base) => ({
       ...base,

@@ -34,16 +34,18 @@ export default function PrimaryPriceCard({
             variant={isInWatchlist ? "secondary" : "primary"}
             onClick={onToggleWatchlist}
             disabled={!!disabled}
+            size="sm"
+            className="sm:px-4 sm:py-2 sm:text-sm"
           >
             {isInWatchlist ? (
               <>
                 <LuStarOff size={18} />
-                <span className="ml-2">Remove</span>
+                <span className="ml-2 hidden sm:inline">Remove</span>
               </>
             ) : (
               <>
                 <LuStar size={18} />
-                <span className="ml-2">Add to Watchlist</span>
+                <span className="ml-2 hidden sm:inline">Add to Watchlist</span>
               </>
             )}
           </Button>

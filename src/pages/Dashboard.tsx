@@ -272,7 +272,7 @@ export default function Dashboard() {
           <section className="col-span-12 lg:col-span-9">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl md:text-3xl font-semibold text-white">Market Summary</h2>
-              <div className="flex items-center gap-3">
+              <div className="hidden md:flex items-center gap-3">
                 <div className="w-64">
                   <SymbolSelect value={symbol} onChange={setSymbol} />
                 </div>
@@ -286,6 +286,10 @@ export default function Dashboard() {
                   {user.firstName} {user.lastName}
                 </span>
               </p>
+              {/* Mobile-only Market Symbol below welcome text */}
+              <div className="mt-3 md:hidden">
+                <SymbolSelect value={symbol} onChange={setSymbol} />
+              </div>
               {!symbol && (
                 <p className="text-xs text-gray-500 mt-1">
                   Select a symbol to load live ticker data.
@@ -293,7 +297,6 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Cards 1 & 2 above the chart */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <PrimaryPriceCard
                 ticker={ticker}
@@ -305,7 +308,9 @@ export default function Dashboard() {
                   (!isInWatchlist && watchlist.length >= 5)
                 }
               />
-              <ExecutionDepthCard ticker={ticker} spread={spread} />
+              <div className="hidden md:block">
+                <ExecutionDepthCard ticker={ticker} spread={spread} />
+              </div>
             </div>
 
             {/* Chart */}
@@ -385,8 +390,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Cards 3 & 4 below the chart */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div className="hidden lg:grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <VolatilityRangeCard ticker={ticker} />
               <TradeActivityCard
                 ticker={ticker}

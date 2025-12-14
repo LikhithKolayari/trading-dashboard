@@ -13,7 +13,7 @@ import { isValidSymbol } from "../utils/validation.js";
 const router = express.Router();
 const WATCHLIST_LIMIT = 5;
 
-// GET /api/watchlist -> return user's symbols
+// GET /api/watchlist
 router.get("/watchlist", requireAuth, async (req, res) => {
   try {
     const userId = req.session.userId;
@@ -28,7 +28,7 @@ router.get("/watchlist", requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/watchlist { symbol }
+// POST /api/watchlist
 router.post("/watchlist", requireAuth, async (req, res) => {
   try {
     const userId = req.session.userId;
@@ -45,13 +45,11 @@ router.post("/watchlist", requireAuth, async (req, res) => {
       }
       if (e && e.code === "LIMIT") {
         const current = await getUserWatchlist(userId);
-        return res
-          .status(409)
-          .json({
-            error: "Watchlist limit reached",
-            limit: WATCHLIST_LIMIT,
-            current: current.length,
-          });
+        return res.status(409).json({
+          error: "Watchlist limit reached",
+          limit: WATCHLIST_LIMIT,
+          current: current.length,
+        });
       }
       throw e;
     }
@@ -61,7 +59,7 @@ router.post("/watchlist", requireAuth, async (req, res) => {
   }
 });
 
-// DELETE /api/watchlist/:symbol -> remove symbol
+// DELETE /api/watchlist/:symbol
 router.delete("/watchlist/:symbol", requireAuth, async (req, res) => {
   try {
     const userId = req.session.userId;

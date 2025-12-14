@@ -32,7 +32,7 @@ export default function WatchlistItem({ symbol, ticker, onSelect, onRemove }: Wa
   const isNeg = Number.isFinite(percent) && percent < 0;
 
   return (
-    <li className="px-4 py-4 hover:bg-white/5 transition-colors">
+    <li className="px-3 py-3 sm:px-4 sm:py-4 hover:bg-white/5 transition-colors">
       <div className="flex items-start justify-between gap-3">
         <button
           type="button"
@@ -41,18 +41,23 @@ export default function WatchlistItem({ symbol, ticker, onSelect, onRemove }: Wa
           title={`View ${symbol}`}
         >
           <div className="flex items-baseline justify-between">
-            <span className="font-semibold text-white text-lg" style={{ letterSpacing: 0.2 }}>
+            <span
+              className="font-semibold text-white text-base sm:text-lg"
+              style={{ letterSpacing: 0.2 }}
+            >
               {symbol}
             </span>
             <span
-              className={`text-lg font-semibold ${
+              className={`text-base sm:text-lg font-semibold ${
                 isPos ? "text-green-400" : isNeg ? "text-red-400" : "text-gray-400"
               }`}
             >
               {formatPercent(ticker?.priceChangePercent)}
             </span>
           </div>
-          <div className="mt-1 text-sm text-gray-400">{formatPrice(ticker?.lastPrice)}</div>
+          <div className="mt-1 text-xs sm:text-sm text-gray-400">
+            {formatPrice(ticker?.lastPrice)}
+          </div>
         </button>
         <button
           type="button"
@@ -61,7 +66,7 @@ export default function WatchlistItem({ symbol, ticker, onSelect, onRemove }: Wa
           onClick={onRemove}
           title={`Remove ${symbol}`}
         >
-          <LuTrash2 size={16} />
+          <LuTrash2 size={14} />
         </button>
       </div>
     </li>

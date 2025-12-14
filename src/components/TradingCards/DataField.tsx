@@ -24,7 +24,7 @@ export default function DataField({
 
   const valueClass =
     priority === 1
-      ? "text-sm md:text-base font-semibold"
+      ? "text-xs sm:text-sm md:text-base font-semibold"
       : priority === 2
       ? "text-xs md:text-sm font-medium"
       : "text-xs";
@@ -40,11 +40,11 @@ export default function DataField({
   const display: string | number = isInvalid ? "--" : (value as string | number);
 
   return (
-    <div className="flex flex-col gap-0.5" title={title}>
+    <div className="flex flex-col gap-0.5 min-w-0" title={title}>
       <span className="text-xs" style={{ color: "var(--color-neutral-400)" }}>
         {label}
       </span>
-      <span className={`${valueClass}`} style={{ color }}>
+      <span className={`${valueClass} truncate`} style={{ color }}>
         {display}
       </span>
     </div>
