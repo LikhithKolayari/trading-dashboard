@@ -56,4 +56,23 @@ export async function getSession(): Promise<SessionResponse> {
   return apiFetch<SessionResponse>("/session", { method: "GET" });
 }
 
+// Watchlist APIs
+export type WatchlistResponse = { symbols: string[] };
+
+export async function getWatchlist(): Promise<WatchlistResponse> {
+  return apiFetch<WatchlistResponse>("/watchlist", { method: "GET" });
+}
+
+export async function addToWatchlist(symbol: string): Promise<WatchlistResponse> {
+  return apiFetch<WatchlistResponse>("/watchlist", {
+    method: "POST",
+    body: JSON.stringify({ symbol }),
+  });
+}
+
+export async function removeFromWatchlist(symbol: string): Promise<WatchlistResponse> {
+  const encoded = encodeURIComponent(symbol);
+  return apiFetch<WatchlistResponse>(`/watchlist/${encoded}`, { method: "DELETE" });
+}
+
 export { API_BASE };

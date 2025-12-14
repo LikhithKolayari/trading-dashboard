@@ -256,3 +256,30 @@ export function isBinanceTickerEvent(msg: unknown): msg is BinanceTickerStreamEv
   const e = (msg as { e?: unknown }).e;
   return e === "24hrTicker";
 }
+
+// Type guard for Binance Kline stream events
+export function isBinanceKlineEvent(
+  msg: unknown
+): msg is import("../types/binance").BinanceKlineStreamEvent {
+  if (typeof msg !== "object" || msg === null) return false;
+  const anyMsg = msg as { e?: unknown; k?: unknown };
+  if (anyMsg.e !== "kline") return false;
+  if (typeof anyMsg.k !== "object" || anyMsg.k === null) return false;
+  const k = anyMsg.k as {
+    t?: unknown;
+    o?: unknown;
+    h?: unknown;
+    l?: unknown;
+    c?: unknown;
+    x?: unknown;
+  };
+  // Minimal shape validation
+  return (
+    typeof k.t === "number" &&
+    typeof k.o === "string" &&
+    typeof k.h === "string" &&
+    typeof k.l === "string" &&
+    typeof k.c === "string" &&
+    typeof k.x === "boolean"
+  );
+}

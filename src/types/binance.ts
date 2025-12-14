@@ -120,6 +120,32 @@ export interface BinanceTickerStreamEvent {
   n: number; // Total number of trades
 }
 
+// Kline stream event (matches Binance WS payload for kline streams)
+export interface BinanceKlineStreamEvent {
+  e: "kline"; // Event type
+  E: number; // Event time
+  s: string; // Symbol
+  k: {
+    t: number; // Kline start time (ms)
+    T: number; // Kline close time (ms)
+    s: string; // Symbol
+    i: string; // Interval (e.g., "1h")
+    f: number; // First trade ID
+    L: number; // Last trade ID
+    o: string; // Open price
+    c: string; // Close price
+    h: string; // High price
+    l: string; // Low price
+    v: string; // Base asset volume
+    n: number; // Number of trades
+    x: boolean; // Is this kline closed?
+    q: string; // Quote asset volume
+    V: string; // Taker buy base asset volume
+    Q: string; // Taker buy quote asset volume
+    B: string; // Ignore
+  };
+}
+
 export type WebSocketStatus = "idle" | "connecting" | "open" | "closing" | "closed" | "error";
 
 // Wrapper for Binance combined stream responses: { stream, data }

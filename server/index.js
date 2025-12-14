@@ -9,6 +9,7 @@ import crypto from "crypto";
 import path from "path";
 import { fileURLToPath } from "url";
 import authRouter from "./routes/auth.js";
+import watchlistRouter from "./routes/watchlist.js";
 import { ensureUsersCollection } from "./utils/dbInit.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -69,6 +70,7 @@ app.get("/api/health", (_req, res) => {
 
 // Routes
 app.use("/api", authRouter);
+app.use("/api", watchlistRouter);
 
 // 404 handler
 app.use((_req, res) => {

@@ -1,19 +1,33 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Button from "../components/Button";
 import { useAuth } from "../context/useAuth";
 import SymbolSelect from "../components/SymbolSelect";
 import { LuLogOut } from "react-icons/lu";
+
 import PrimaryPriceCard from "../components/TradingCards/PrimaryPriceCard";
 import ExecutionDepthCard from "../components/TradingCards/ExecutionDepthCard";
 import VolatilityRangeCard from "../components/TradingCards/VolatilityRangeCard";
 import TradeActivityCard from "../components/TradingCards/TradeActivityCard";
 import { useTickerStream } from "../hooks/useTickerStream";
+import { useKlineStream } from "../hooks/useKlineStream";
 import { get24hrTicker } from "../services/binance";
 import type { Binance24hrTicker, KlineInterval } from "../types/binance";
 import CandlestickChart from "../components/CandlestickChart";
 import IntervalSelect from "../components/IntervalSelect";
 import { getUIKlines, transformKlinesToChartData } from "../services/binance";
 import type { ChartCandle } from "../types/chart";
+import { addToWatchlist, getWatchlist, removeFromWatchlist } from "../services/api";
+import { useToast } from "../context/ToastContext";
+import WatchlistItem from "../components/WatchlistItem";
+import { useWatchlistStream } from "../hooks/useWatchlistStream";
+
+function getErrorMessage(err: unknown): string {
+  if (err && typeof err === "object" && "message" in err) {
+    const m = (err as { message?: unknown }).message;
+    if (typeof m === "string") return m;
+  }
+  return "Action failed";
+}
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -23,6 +37,10 @@ export default function Dashboard() {
   };
 
   const [symbol, setSymbol] = useState<string>("");
+  const [watchlist, setWatchlist] = useState<string[]>([]);
+  // Dedicated WS stream for watchlist tickers
+  const { tickerMap, unsubscribeSymbols } = useWatchlistStream(watchlist);
+  const { show: showToast } = useToast();
   const {
     ticker: wsTicker,
     loading: wsLoading,
@@ -39,6 +57,9 @@ export default function Dashboard() {
   const [klinesError, setKlinesError] = useState<string | null>(null);
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [noMoreData, setNoMoreData] = useState<boolean>(false);
+
+  // Live kline stream for real-time chart updates
+  const { kline: liveKline } = useKlineStream(symbol, interval);
 
   // Initial static data fetch on symbol change
   const [initialTicker, setInitialTicker] = useState<Binance24hrTicker | null>(null);
@@ -74,6 +95,56 @@ export default function Dashboard() {
     };
   }, [symbol]);
 
+  // Initial watchlist fetch
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await getWatchlist();
+        if (!cancelled) setWatchlist(Array.isArray(data.symbols) ? data.symbols : []);
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const isInWatchlist = useMemo(() => {
+    const s = (symbol || "").trim().toUpperCase();
+    if (!s) return false;
+    return watchlist.includes(s);
+  }, [symbol, watchlist]);
+
+  const handleAddRemoveWatchlist = async () => {
+    const s = (symbol || "").trim().toUpperCase();
+    if (!s || !SYMBOL_REGEX.test(s)) return;
+    try {
+      if (isInWatchlist) {
+        const res = await removeFromWatchlist(s);
+        setWatchlist(res.symbols || []);
+        showToast(`Removed ${s} from watchlist`, "success");
+      } else {
+        const res = await addToWatchlist(s);
+        setWatchlist(res.symbols || []);
+        showToast(`Added ${s} to watchlist`, "success");
+      }
+    } catch (err: unknown) {
+      const msg = getErrorMessage(err);
+      if (msg.toLowerCase().includes("limit")) {
+        showToast(
+          "Watchlist limit reached (5/5). Please remove a symbol to add a new one.",
+          "error"
+        );
+      } else if (msg.toLowerCase().includes("already")) {
+        showToast(`${s} is already in your watchlist`, "info");
+      } else {
+        showToast(msg, "error");
+      }
+    }
+  };
+
   // Fetch klines whenever symbol or interval changes
   useEffect(() => {
     let cancelled = false;
@@ -108,6 +179,28 @@ export default function Dashboard() {
       cancelled = true;
     };
   }, [symbol, interval]);
+
+  // Merge live kline updates into chart data
+  useEffect(() => {
+    if (!liveKline) return;
+    setKlines((prev) => {
+      const { candle } = liveKline;
+      if (!Array.isArray(prev) || prev.length === 0) {
+        return [candle];
+      }
+      const last = prev[prev.length - 1];
+      if (candle.time === last.time) {
+        const next = prev.slice();
+        next[next.length - 1] = candle; // update in-place last bar
+        return next;
+      }
+      if (candle.time > last.time) {
+        return [...prev, candle]; // append new bar
+      }
+      // If candle is older than our latest, ignore (historical fetch handles older data)
+      return prev;
+    });
+  }, [liveKline]);
 
   // Prefer WS live updates; fall back to initial REST data
   const ticker = wsTicker ?? initialTicker;
@@ -179,8 +272,10 @@ export default function Dashboard() {
           <section className="col-span-12 lg:col-span-9">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl md:text-3xl font-semibold text-white">Market Summary</h2>
-              <div className="w-64">
-                <SymbolSelect value={symbol} onChange={setSymbol} />
+              <div className="flex items-center gap-3">
+                <div className="w-64">
+                  <SymbolSelect value={symbol} onChange={setSymbol} />
+                </div>
               </div>
             </div>
 
@@ -200,7 +295,16 @@ export default function Dashboard() {
 
             {/* Cards 1 & 2 above the chart */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <PrimaryPriceCard ticker={ticker} />
+              <PrimaryPriceCard
+                ticker={ticker}
+                isInWatchlist={isInWatchlist}
+                onToggleWatchlist={handleAddRemoveWatchlist}
+                disabled={
+                  !symbol ||
+                  !SYMBOL_REGEX.test((symbol || "").trim().toUpperCase()) ||
+                  (!isInWatchlist && watchlist.length >= 5)
+                }
+              />
               <ExecutionDepthCard ticker={ticker} spread={spread} />
             </div>
 
@@ -213,7 +317,9 @@ export default function Dashboard() {
               }}
             >
               <div className="p-4 text-gray-400 text-sm flex items-center justify-between gap-4">
-                <span>Chart</span>
+                <h3 className="font-semibold text-base" style={{ color: "var(--color-accent)" }}>
+                  Chart
+                </h3>
                 <div className="w-40">
                   <IntervalSelect value={interval} onChange={setInterval} />
                 </div>
@@ -301,19 +407,31 @@ export default function Dashboard() {
             >
               <div className="px-4 py-3 border-b" style={{ borderColor: "var(--color-border)" }}>
                 <h3 className="font-semibold" style={{ color: "var(--color-accent)" }}>
-                  Watchlist
+                  Watchlist <span className="text-xs text-gray-400">({watchlist.length}/5)</span>
                 </h3>
               </div>
-              {/* Placeholder list */}
-              <ul className="divide-y" style={{ borderColor: "var(--color-border)" }}>
-                {Array.from({ length: 8 }).map((_, idx) => (
-                  <li key={idx} className="px-4 py-3 flex items-center justify-between">
-                    <div className="flex flex-col">
-                      <span className="text-gray-200 font-medium">—</span>
-                      <span className="text-xs text-gray-400">—</span>
-                    </div>
-                    <span className="text-xs text-gray-500">0.00%</span>
-                  </li>
+              <ul>
+                {watchlist.length === 0 && (
+                  <li className="px-4 py-3 text-sm text-gray-400">No symbols yet</li>
+                )}
+                {watchlist.map((s) => (
+                  <WatchlistItem
+                    key={s}
+                    symbol={s}
+                    ticker={tickerMap[s]}
+                    onSelect={() => setSymbol(s)}
+                    onRemove={async () => {
+                      try {
+                        unsubscribeSymbols([s]);
+                        const res = await removeFromWatchlist(s);
+                        setWatchlist(res.symbols || []);
+                        showToast(`Removed ${s} from watchlist`, "success");
+                      } catch (err: unknown) {
+                        const msg = getErrorMessage(err) || "Failed to remove";
+                        showToast(msg, "error");
+                      }
+                    }}
+                  />
                 ))}
               </ul>
             </div>

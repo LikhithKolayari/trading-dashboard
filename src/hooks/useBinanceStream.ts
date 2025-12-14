@@ -2,6 +2,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { WebSocketCore } from "../services/websocket";
 import type { WebSocketStatus } from "../types/binance";
 
+// Shared singleton WebSocketCore instance so all hooks reuse one connection
+let __sharedClient: WebSocketCore | null = null;
+function getSharedClient(): WebSocketCore {
+  if (!__sharedClient) {
+    __sharedClient = new WebSocketCore();
+  }
+  return __sharedClient;
+}
+
 export interface UseBinanceStreamResult<T = unknown> {
   data: T | null;
   status: WebSocketStatus;
@@ -37,7 +46,7 @@ export function useBinanceStream<T = unknown>(streams: string[]): UseBinanceStre
   const prevStreamsRef = useRef<string[]>([]);
 
   useEffect(() => {
-    const client = new WebSocketCore();
+    const client = getSharedClient();
     clientRef.current = client;
 
     const offStatus = client.onStatusChange((s) => {
@@ -51,13 +60,23 @@ export function useBinanceStream<T = unknown>(streams: string[]): UseBinanceStre
       setError(null);
     });
 
+    // Ensure the shared client is connected (no-op if already open/connecting)
     client.connect();
 
     return () => {
+      // Unregister handlers for this hook
       offMessage();
       offStatus();
-      client.disconnect();
-      clientRef.current = null;
+      // Unsubscribe any streams this hook last subscribed to
+      const last = prevStreamsRef.current;
+      if (last && last.length) {
+        try {
+          client.unsubscribe(last);
+        } catch {
+          // ignore
+        }
+      }
+      // Do NOT disconnect the shared client here; other hooks may still be using it
       prevStreamsRef.current = [];
     };
   }, []);

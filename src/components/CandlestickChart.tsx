@@ -7,6 +7,8 @@ import {
   type UTCTimestamp,
   type IChartApi,
   type ISeriesApi,
+  type IRange,
+  type Logical,
 } from "lightweight-charts";
 import type { ChartCandle } from "../types/chart";
 
@@ -89,15 +91,14 @@ export default function CandlestickChart({
 
     // Detect when scrolled near the start to request more data
     const THRESHOLD = 2; // logical bars from the start
-    const handler = () => {
+    const handler = (visibleRange: IRange<Logical> | null) => {
       try {
         const cb = onLoadMoreRef.current;
         if (!cb) return;
         if (isLoadingMoreRef.current) return;
-        const range = chart.timeScale().getVisibleLogicalRange();
-        if (!range) return;
+        if (!visibleRange) return;
         // If the left edge is near the beginning, request older data
-        if (range.from < THRESHOLD) {
+        if (visibleRange.from < THRESHOLD) {
           const now = Date.now();
           // simple throttle to avoid spamming
           if (now - lastTriggerTsRef.current < 1000) return;
