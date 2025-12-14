@@ -112,15 +112,32 @@ export default function CandlestickChart({
 
     chart.timeScale().subscribeVisibleLogicalRangeChange(handler);
 
-    const ro = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const { width } = entry.contentRect;
+    let ro: ResizeObserver | null = null;
+    let removeResizeListener: (() => void) | null = null;
+
+    if (typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const { width } = entry.contentRect;
+          if (width > 0) {
+            chart.applyOptions({ width: Math.floor(width), height });
+          }
+        }
+      });
+      ro.observe(el);
+    } else {
+      // Fallback for test/jsdom or older browsers without ResizeObserver
+      const onResize = () => {
+        const width = el.clientWidth || 0;
         if (width > 0) {
           chart.applyOptions({ width: Math.floor(width), height });
         }
-      }
-    });
-    ro.observe(el);
+      };
+      window.addEventListener("resize", onResize);
+      removeResizeListener = () => window.removeEventListener("resize", onResize);
+      // Trigger once to sync size
+      onResize();
+    }
 
     return () => {
       try {
@@ -128,7 +145,12 @@ export default function CandlestickChart({
       } catch {
         /* noop */
       }
-      ro.disconnect();
+      if (ro) {
+        ro.disconnect();
+      }
+      if (removeResizeListener) {
+        removeResizeListener();
+      }
       chart.remove();
       chartRef.current = null;
       seriesRef.current = null;
@@ -180,5 +202,12 @@ export default function CandlestickChart({
     }
   }, [data]);
 
-  return <div ref={containerRef} className={className} style={{ width: "100%", height }} />;
+  return (
+    <div
+      ref={containerRef}
+      className={className}
+      style={{ width: "100%", height }}
+      data-testid="candlestick-container"
+    />
+  );
 }

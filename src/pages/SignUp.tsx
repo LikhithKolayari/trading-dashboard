@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import Input from "../components/Input";
 import Button from "../components/Button";
 import { useAuth } from "../context/useAuth";
-import { SignUpSchema, PASSWORD_MIN } from "../schemas/auth.schema";
+import { SignUpSchema } from "../schemas/auth.schema";
 
 type Errors = Partial<{
   firstName: string;
@@ -87,7 +87,7 @@ export default function SignUp() {
       <div className="min-h-screen flex items-center justify-center p-4 bg-gray-950">
         <div className="w-full max-w-md bg-gray-900 border border-gray-800 rounded-xl p-6 shadow text-center">
           <h1 className="text-2xl font-semibold text-green-400 mb-2">Success</h1>
-          <p className="text-gray-200 mb-6">{success}</p>
+          <p className="text-gray-200 mb-6">Please log in to continue.</p>
           <div className="flex gap-3 justify-center">
             <Button onClick={() => navigate("/")}>Go to Login</Button>
           </div>
@@ -173,8 +173,7 @@ export default function SignUp() {
             autoComplete="new-password"
           />
           <p className="text-xs text-gray-400 mb-3">
-            Password must be at least {PASSWORD_MIN} characters and include upper, lower, number,
-            and special character.
+            Password must include upper, lower, number, and special character.
           </p>
           <Button type="submit" disabled={submitting || !isValid} className="w-full">
             {submitting ? "Creating account..." : "Sign Up"}

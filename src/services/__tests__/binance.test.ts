@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { getUIKlines } from "./binance";
-import { API_URLS } from "../constants/urls";
-import type { BinanceUIKline } from "../types/binance";
+import { getUIKlines } from "../binance";
+import { API_URLS } from "../../constants/urls";
+import type { BinanceUIKline } from "../../types/binance";
 
 const sampleKlines: BinanceUIKline[] = [
   [
@@ -63,7 +63,9 @@ describe("getUIKlines", () => {
     // Validate request URL and query params
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const calledUrl = new URL(fetchMock.mock.calls[0][0] as string);
-    expect(calledUrl.origin + calledUrl.pathname).toBe(API_URLS.BINANCE.UI_KLINES);
+    expect(calledUrl.origin + calledUrl.pathname).toBe(
+      API_URLS.BINANCE.BASE + API_URLS.BINANCE.UI_KLINES
+    );
     expect(calledUrl.searchParams.get("symbol")).toBe("USDTBTC");
     expect(calledUrl.searchParams.get("interval")).toBe("1s");
     expect(calledUrl.searchParams.get("startTime")).toBe(String(params.startTime));

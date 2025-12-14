@@ -35,8 +35,9 @@ export default function SymbolSelect({
     try {
       const opts = await getTradingSymbolOptions();
       setOptions(opts);
-    } catch (e) {
-      setError((e as Error)?.message || "Failed to load symbols");
+    } catch {
+      // Show a generic error to avoid leaking internal error details
+      setError("Failed to load symbols");
     } finally {
       setLoading(false);
     }
