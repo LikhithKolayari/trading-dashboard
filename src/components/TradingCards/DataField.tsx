@@ -1,5 +1,3 @@
-import React from "react";
-
 export type Priority = 1 | 2 | 3;
 
 export interface DataFieldProps {
