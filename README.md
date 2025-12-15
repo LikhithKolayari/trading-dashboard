@@ -110,6 +110,8 @@ This app is packaged to run as a single Render Web Service where Express serves 
 - No special build/start commands required; the image builds the frontend and serves it via Express.
 - A health check is exposed at GET /api/health.
 
+⚠️ **Important:** The free Render instance will spin down with inactivity, which can delay the first request by 50 seconds or more. Please be patient on initial load.
+
 Notes
 
 - API is served under the same domain at /api.
